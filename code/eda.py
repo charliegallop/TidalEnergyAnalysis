@@ -37,6 +37,9 @@ def CleanData(dataset, time, area, groupAmount = False):
         groupAmount:
     
     """
+    
+    
+    
     def MakeDfFromMA(variable):
         df1 = dataset[variable][:]
         df1 = np.ma.getdata(df1)
@@ -135,11 +138,11 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
             minlength = 0.001
             )
     m.colorbar()
+    m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
     return fig
 
 def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
     area = area
-    ds = nc.Dataset(fn)
 
     listDf = []
     x = input("Is this the final render? (y/n)")
@@ -249,16 +252,17 @@ channelArea = {
         'northing1': 10000000.00
         }
 
-CreateImageStack(channelArea, fn, timeRange = [5, 20])
+CreateImageStack(channelArea, fn, timeRange = [0, 100])
 
 
 
 
 #%%
-
+ds = nc.Dataset(fn)
+#%%
 def CreateImageStackMulti(timeRange, area = channelArea,  ncFileLocation = fn, powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
     area = area
-    ds = nc.Dataset(fn)
+    
 
     listDf = []
     for i in timeRange:
@@ -280,20 +284,20 @@ def CreateImageStackMulti(timeRange, area = channelArea,  ncFileLocation = fn, p
     print("Done")
 
 import multiprocessing
+import pty
 
-if __name__ == "__main__":
-    arr1=[2,3,8,9]
-    arr2=[4, 5, 7, 10]
-    p1=multiprocessing.Process(target=CreateImageStackMulti,args=(arr1,))
-    p2=multiprocessing.Process(target=CreateImageStackMulti,args=(arr2,))
-    
-    p1.start()
-    p2.start()
-    
-    p1.join()
-    p2.join()
-    
-    print("Done")
+pid = pty.fork()
+if not pid:
+    if __name__ == "__main__":
+        arr1=[2,3,8,9]
+        arr2=[4, 5, 7, 10]
+        p1=multiprocessing.Process(target=CreateImageStackMulti,args=(arr1,))
+        p2=multiprocessing.Process(target=CreateImageStackMulti,args=(arr2,))
+        
+        p1.start()
+        p2.start()
+        
+        print("Done")
 
 # %%
 fig, axs = plt.subplots(5)
