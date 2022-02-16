@@ -17,13 +17,14 @@ from matplotlib import animation
 from mpl_toolkits.basemap import Basemap
 import math
 
+
 # %%
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
 ds = nc.Dataset(fn)
 
 #%% Functions
 
-def CleanData(dataset, time, variables, area, groupAmount = False):
+def CleanData(dataset, time, area, groupAmount = False):
     
     """
     Returns a dataframe that includes the variables that were extraced from the
@@ -32,7 +33,6 @@ def CleanData(dataset, time, variables, area, groupAmount = False):
     Arguments:
         dataset:
         time:
-        variables:
         area:
         groupAmount:
     
@@ -42,6 +42,8 @@ def CleanData(dataset, time, variables, area, groupAmount = False):
         df1 = np.ma.getdata(df1)
         df1 = pd.DataFrame(df1)
         return df1
+
+    variables = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag']
 
     count = 0
     for i in variables:
@@ -83,7 +85,7 @@ def CalcVelocity(data, depthOfInterest, powerLaw = 1/10, bottomRoughnessCoef = 0
 
 # 2D Velocity and depth map
 
-def Plot2dVectorDepth(area, data, depth = True, flow = True, mapRes = 'i', numArrows = 3):
+def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numArrows = 3):
     plt.clf()
     fig = plt.gcf()
     fig.set_size_inches(10, 10)
@@ -115,7 +117,7 @@ def Plot2dVectorDepth(area, data, depth = True, flow = True, mapRes = 'i', numAr
                     edgecolors = 'none')
         
         
-    X,Y,U,V,C = (x, y, data['velXseabed'], data['velYseabed'], data['magSeabed']*100)
+    X,Y,U,V,C = (x, y, data['velXseabed'], data['velYseabed'], data['magSeabed'])
     X2, Y2 = m(X.tolist(), Y.tolist())
     
     # numArrows selects how many arrows to render, 1 = all, 3 = every third arrow etc
@@ -132,9 +134,11 @@ def Plot2dVectorDepth(area, data, depth = True, flow = True, mapRes = 'i', numAr
             headaxislength = 3,
             minlength = 0.001
             )
-        m.colorbar()
+    m.colorbar()
     return fig
   
+#def TimeseriesPlot(location = []):
+    
 #%% Defining Areas
 
 # Falmouth area
@@ -158,20 +162,18 @@ channelArea = {
 area = falArea
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
 ds = nc.Dataset(fn)
-v = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag']
 
 listDf = []
-for i in range(5, 205):
+for i in range(6, 8):
     df = CleanData(dataset = ds,
-                   time = i, 
-                   variables = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag'], 
+                   time = i,  
                    area = area,
                    groupAmount = 2)
     df = CalcVelocity(data = df,
                       powerLaw = 1/10,
                       depthOfInterest = df['depth']/2,
                       bottomRoughnessCoef = 0.32)
-    Plot2dVectorDepth(area = area,
+    Plot2dVectorField(area = area,
                       data = df,
                       depth = False,
                       flow = True,
@@ -182,33 +184,31 @@ for i in range(5, 205):
     
 # %% Channel Area GIF
 
+import timeit
+
 # For creating gif of whole channel area
 area = channelArea
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
 ds = nc.Dataset(fn)
-v = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag']
 
 listDf = []
-for i in range(5, 205):
+for i in range(5, 6):
     df = CleanData(dataset = ds,
-                   time = i, 
-                   variables = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag'], 
+                   time = i,
                    area = area,
                    groupAmount = 2)
     df = CalcVelocity(data = df,
                       powerLaw = 1/10,
                       depthOfInterest = df['depth']/2,
                       bottomRoughnessCoef = 0.32)
-    Plot2dVectorDepth(area = area,
+    Plot2dVectorField(area = area,
                       data = df,
                       depth = False,
                       flow = True,
-                      mapRes = 'f',
-                      numArrows=3).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{i}.png")
+                      mapRes = 'i',
+                      numArrows=10).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/chan{i}.png")
     print("Finished: ", i)
     
-    
-
 # %%   
 fig, axs = plt.subplots(5)
 fig.suptitle('Vertically stacked subplots')
@@ -240,7 +240,7 @@ test = CleanData(ds, 100, ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y'
 test = CalcVelocity(test, depthOfInterest = test['depth']/2)
 Plot2dVectorDepth(area = falArea,
                   data = test,
-                  depth = True,
+                  depth = False,
                   flow = True,
                   mapRes = 'f',
                   numArrows=3).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/test.png")
