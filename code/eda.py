@@ -76,9 +76,9 @@ def CleanData(dataset, time, area, groupAmount = False):
     df.drop(columns = ['locX', 'locY'], inplace = True)
     return df
 
-def CalcVelocity(data, depthOfInterest, powerLaw = 1/10, bottomRoughnessCoef = 0.32):
-    data['velXseabed'] = pow((depthOfInterest/bottomRoughnessCoef*data['depth']), (powerLaw))*data['velX']
-    data['velYseabed'] = pow((depthOfInterest/bottomRoughnessCoef*data['depth']), (powerLaw))*data['velY']
+def CalcVelocity(data, depthOfInterest = 2, powerLaw = 1/10, bottomRoughnessCoef = 0.32):
+    data['velXseabed'] = pow(((data['depth']/depthOfInterest)/bottomRoughnessCoef*data['depth']), (powerLaw))*data['velX']
+    data['velYseabed'] = pow(((data['depth']/depthOfInterest)/bottomRoughnessCoef*data['depth']), (powerLaw))*data['velY']
     data['magSeabed'] = data.apply(lambda x: math.sqrt(pow(x['velXseabed'], 2) + pow(x['velYseabed'], 2)), axis = 1)
     data.drop(columns = ['velX', 'velY', 'mag'], inplace = True)
     return data
@@ -136,8 +136,35 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
             )
     m.colorbar()
     return fig
-  
-#def TimeseriesPlot(location = []):
+
+def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
+    area = area
+    ds = nc.Dataset(fn)
+
+    listDf = []
+    x = input("Is this the final render? (y/n)")
+    if x.lower() == 'y':
+        saveTo = 'final'
+    else:
+        saveTo = 'test'
+    
+    for i in range(timeRange[0], timeRange[1]):
+        df = CleanData(dataset = ds,
+                       time = i,
+                       area = area,
+                       groupAmount = groupAmount)
+        df = CalcVelocity(data = df,
+                          powerLaw = powerLaw,
+                          depthOfInterest = depthOfInterest,
+                          bottomRoughnessCoef = bottomRoughnessCoef)
+        Plot2dVectorField(area = area,
+                          data = df,
+                          depth = depth,
+                          flow = flow,
+                          mapRes = mapRes,
+                          numArrows=numArrows).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{saveTo}/2chan{i}.png")
+        print("Finished: ", i)
+    print("Done")
     
 #%% Defining Areas
 
@@ -184,7 +211,6 @@ for i in range(6, 8):
     
 # %% Channel Area GIF
 
-import timeit
 
 # For creating gif of whole channel area
 area = channelArea
@@ -192,11 +218,12 @@ fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustain
 ds = nc.Dataset(fn)
 
 listDf = []
-for i in range(5, 6):
+x = [5, 15]
+for i in range(5, 15):
     df = CleanData(dataset = ds,
                    time = i,
                    area = area,
-                   groupAmount = 2)
+                   groupAmount = 3)
     df = CalcVelocity(data = df,
                       powerLaw = 1/10,
                       depthOfInterest = df['depth']/2,
@@ -206,10 +233,69 @@ for i in range(5, 6):
                       depth = False,
                       flow = True,
                       mapRes = 'i',
-                      numArrows=10).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/chan{i}.png")
+                      numArrows=10).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/2chan{i}.png")
     print("Finished: ", i)
+
     
-# %%   
+# %%
+
+
+fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
+# Total Channel
+channelArea = {
+        'easting0': 100000,
+        'northing0': 0.0,
+        'easting1': 999999,
+        'northing1': 10000000.00
+        }
+
+CreateImageStack(channelArea, fn, timeRange = [5, 20])
+
+
+
+
+#%%
+
+def CreateImageStackMulti(timeRange, area = channelArea,  ncFileLocation = fn, powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
+    area = area
+    ds = nc.Dataset(fn)
+
+    listDf = []
+    for i in timeRange:
+        df = CleanData(dataset = ds,
+                       time = i,
+                       area = area,
+                       groupAmount = groupAmount)
+        df = CalcVelocity(data = df,
+                          powerLaw = powerLaw,
+                          depthOfInterest = depthOfInterest,
+                          bottomRoughnessCoef = bottomRoughnessCoef)
+        Plot2dVectorField(area = area,
+                          data = df,
+                          depth = depth,
+                          flow = flow,
+                          mapRes = mapRes,
+                          numArrows=numArrows).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/test/multichan{i}.png")
+        print("Finished: ", i)
+    print("Done")
+
+import multiprocessing
+
+if __name__ == "__main__":
+    arr1=[2,3,8,9]
+    arr2=[4, 5, 7, 10]
+    p1=multiprocessing.Process(target=CreateImageStackMulti,args=(arr1,))
+    p2=multiprocessing.Process(target=CreateImageStackMulti,args=(arr2,))
+    
+    p1.start()
+    p2.start()
+    
+    p1.join()
+    p2.join()
+    
+    print("Done")
+
+# %%
 fig, axs = plt.subplots(5)
 fig.suptitle('Vertically stacked subplots')
 
