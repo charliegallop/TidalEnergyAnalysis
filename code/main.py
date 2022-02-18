@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from functions import CreateImageStack
+from functions import CreateImageStackStreamplot
 import netCDF4 as nc
 
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
@@ -13,4 +14,12 @@ falArea = {
         'northing1': 5564169.61
         }
 
-CreateImageStack(falArea, fn, timeRange = [100, 101], mapRes = "c")
+# Total Channel
+channelArea = {
+        'easting0': 100000,
+        'northing0': 0.0,
+        'easting1': 999999,
+        'northing1': 10000000.00
+        }
+CreateImageStack(falArea, fn, timeRange = [100, 105], mapRes = "c")
+#CreateImageStackStreamplot(falArea, fn, timeRange=[100, 105], mapRes = "f", groupAmount = 4)

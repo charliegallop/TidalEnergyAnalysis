@@ -111,7 +111,7 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
     # numArrows selects how many arrows to render, 1 = all, 3 = every third arrow etc
     if flow:
 
-        plt.quiver(X2[::numArrows], Y2[::numArrows], U[::numArrows], V[::numArrows], C[::numArrows],
+        m.quiver(X2[::numArrows], Y2[::numArrows], U[::numArrows], V[::numArrows], C[::numArrows],
             units='inches', 
             cmap = 'twilight', 
             alpha = 0.7,
@@ -154,6 +154,93 @@ def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10
                           depthOfInterest = depthOfInterest,
                           bottomRoughnessCoef = bottomRoughnessCoef)
         Plot2dVectorField(area = area,
+                          data = df,
+                          depth = depth,
+                          flow = flow,
+                          mapRes = mapRes,
+                          numArrows=numArrows).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{saveTo}/2chan{i}.png")
+        print("Finished: ", i)
+    print("Done")
+
+def PlotStreamplot(area, data, depth = True, flow = True, mapRes = 'i', numArrows = 3):
+    plt.clf()
+    fig = plt.gcf()
+    fig.set_size_inches(10, 10)
+    
+    x = data['lon']
+    y = data['lat']
+    z = data['depth']
+    
+    
+    lat0, lon0 = y.min(), x.min()
+    lat1, lon1 = y.max(), x.max()
+
+    m = Basemap(projection='merc',
+                llcrnrlon = lon0, urcrnrlon = lon1,
+                llcrnrlat = lat0, urcrnrlat = lat1,
+                resolution = mapRes)
+    m.fillcontinents(color = 'darkgrey')
+    m.drawcoastlines(color = 'black', linewidth=0.2)
+    x2, y2 = m(x.tolist(), y.tolist())  # transform coordinates
+    
+    if depth:
+        plt.scatter(x2,
+                    y2, 
+                    c=z,
+                    s=30,
+                    alpha = 0.2,
+                    cmap="mako",
+                    marker = 'o',
+                    edgecolors = 'none')
+        
+        
+    X,Y,U,V,C = (x, y, data['velXseabed'], data['velYseabed'], data['magSeabed'])
+    print(U.shape, V.shape)
+    UU, VV = np.meshgrid(U, V)
+    X2, Y2 = m(X.tolist(), Y.tolist())
+    xx, yy = m.makegrid(U.shape[0], V.shape[0], returnxy=True)[2:4]
+    
+    
+    # numArrows selects how many arrows to render, 1 = all, 3 = every third arrow etc
+    
+    #print("xx", xx, "yy", yy, "U", U.shape[0], "V", V)
+    m.streamplot(xx, yy, UU, VV, C[::numArrows], cmap=plt.cm.autumn, linewidth=0.5)
+
+    #m.colorbar()
+    #m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
+    return fig
+    
+
+
+
+def CreateImageStackStreamplot(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
+    area = area
+    ds = nc.Dataset(ncFileLocation)
+
+    requestInput = True
+    x = input("Is this the final render? (y/n)")
+    
+    while requestInput:
+        if x.lower() == 'y':
+            saveTo = 'final'
+            requestInput = False
+        elif x.lower() == 'n':
+            saveTo = 'test'
+            requestInput = False
+        else:
+            print("Not a valid input! Please type y or n")
+            x = input("Is this the final render? (y/n)")
+            
+    for i in range(timeRange[0], timeRange[1]):
+        df = CleanData(dataset = ds,
+                       time = i,
+                       area = area,
+                       groupAmount = groupAmount)
+        df = CalcVelocity(data = df,
+                          powerLaw = powerLaw,
+                          depthOfInterest = depthOfInterest,
+                          bottomRoughnessCoef = bottomRoughnessCoef)
+        PlotStreamplot(area = area,
                           data = df,
                           depth = depth,
                           flow = flow,
