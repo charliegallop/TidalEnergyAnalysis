@@ -16,7 +16,7 @@ import utm
 from matplotlib import animation
 from mpl_toolkits.basemap import Basemap
 import math
-
+from functions import CreateImageStack
 
 # %%
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
@@ -67,7 +67,7 @@ def CleanData(dataset, time, area, groupAmount = False):
     df.columns = [variables]
     df['mesh2d_waterdepth'] = -1*df['mesh2d_waterdepth']
     df.columns = ['depth', 'locX', 'locY', 'velX', 'velY', 'mag']
-    df = df[df['depth'] > -200]
+    df = df[df['depth'] > -1000]
     df = df[(df['locX'] >= area['easting0']) & (df['locX'] <= area['easting1']) & (df['locY'] >= area['northing0']) & (df['locY'] <= area['northing1'])]
     if groupAmount:
         df['locXgroup'] = df['locX'].apply(lambda x: round(x, -groupAmount))
@@ -138,19 +138,27 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
             minlength = 0.001
             )
     m.colorbar()
-    m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
+    #m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
     return fig
 
 def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
     area = area
 
     listDf = []
+    requestInput = True
     x = input("Is this the final render? (y/n)")
-    if x.lower() == 'y':
-        saveTo = 'final'
-    else:
-        saveTo = 'test'
     
+    while requestInput:
+        if x.lower() == 'y':
+            saveTo = 'final'
+            requestInput = False
+        elif x.lower() == 'n':
+            saveTo = 'test'
+            requestInput = False
+        else:
+            print("Not a valid input! Please type y or n")
+            x = input("Is this the final render? (y/n)")
+            
     for i in range(timeRange[0], timeRange[1]):
         df = CleanData(dataset = ds,
                        time = i,
@@ -252,7 +260,7 @@ channelArea = {
         'northing1': 10000000.00
         }
 
-CreateImageStack(channelArea, fn, timeRange = [0, 100])
+CreateImageStack(channelArea, fn, timeRange = [99, 100], mapRes = "c")
 
 
 

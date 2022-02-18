@@ -1,23 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# %%
-import netCDF4 as nc
 import numpy as np
-import numpy.ma as ma
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 import utm
-from matplotlib import animation
 from mpl_toolkits.basemap import Basemap
 import math
+import netCDF4 as nc
 
-
-# %%
-fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
-ds = nc.Dataset(fn)
-
-#%% Functions
 
 def CleanData(dataset, time, area, groupAmount = False):
     
@@ -32,6 +22,9 @@ def CleanData(dataset, time, area, groupAmount = False):
         groupAmount:
     
     """
+    
+    
+    
     def MakeDfFromMA(variable):
         df1 = dataset[variable][:]
         df1 = np.ma.getdata(df1)
@@ -46,19 +39,20 @@ def CleanData(dataset, time, area, groupAmount = False):
             if i in ['time', 'mesh2d_face_x', 'mesh2d_face_y']:
                 df = MakeDfFromMA(i)
             else:
-                df = pd.DataFrame(np.ma.masked_values(ds[i][time], -999).data)
+                df = pd.DataFrame(np.ma.masked_values(dataset[i][time], -999).data)
             count += 1
         else:
             if i in ['time', 'mesh2d_face_x', 'mesh2d_face_y']:
                 df2 = MakeDfFromMA(i)
                 df = pd.concat([df, df2], axis = 1)
             else:
-                df2 = pd.DataFrame(np.ma.masked_values(ds[i][time], -999).data)
+                df2 = pd.DataFrame(np.ma.masked_values(dataset[i][time], -999).data)
                 df = pd.concat([df, df2], axis = 1)
             count += 1
+    df.columns = [variables]
+    df['mesh2d_waterdepth'] = -1*df['mesh2d_waterdepth']
     df.columns = ['depth', 'locX', 'locY', 'velX', 'velY', 'mag']
-    df['depth'] = -1*df['depth']
-    df = df[df['depth'] > -200]
+    df = df[df['depth'] > -1000]
     df = df[(df['locX'] >= area['easting0']) & (df['locX'] <= area['easting1']) & (df['locY'] >= area['northing0']) & (df['locY'] <= area['northing1'])]
     if groupAmount:
         df['locXgroup'] = df['locX'].apply(lambda x: round(x, -groupAmount))
@@ -129,19 +123,27 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
             minlength = 0.001
             )
     m.colorbar()
+    #m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
     return fig
 
 def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
     area = area
-    ds = nc.Dataset(fn)
+    ds = nc.Dataset(ncFileLocation)
 
-    listDf = []
+    requestInput = True
     x = input("Is this the final render? (y/n)")
-    if x.lower() == 'y':
-        saveTo = 'final'
-    else:
-        saveTo = 'test'
     
+    while requestInput:
+        if x.lower() == 'y':
+            saveTo = 'final'
+            requestInput = False
+        elif x.lower() == 'n':
+            saveTo = 'test'
+            requestInput = False
+        else:
+            print("Not a valid input! Please type y or n")
+            x = input("Is this the final render? (y/n)")
+            
     for i in range(timeRange[0], timeRange[1]):
         df = CleanData(dataset = ds,
                        time = i,
@@ -159,113 +161,3 @@ def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10
                           numArrows=numArrows).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{saveTo}/2chan{i}.png")
         print("Finished: ", i)
     print("Done")
-    
-#%% Defining Areas
-
-# Falmouth area
-falArea = {
-        'easting0': 347767.59,
-        'northing0': 5550347.91,
-        'easting1': 361496.43,
-        'northing1': 5564169.61
-        }
-
-# Total Channel
-channelArea = {
-        'easting0': 100000,
-        'northing0': 0.0,
-        'easting1': 999999,
-        'northing1': 10000000.00
-        }
-
-#%%
-arr = []
-for i in range(ds.variables['time'][:].data.shape[0]):
-    df = CleanData(ds, i, falArea, groupAmount = 2)
-    df = CalcVelocity(df)
-    df['id'] = i
-    arr.append(df)
-    print('Time step = ', i)
-
-# %%
-
-def CleanDataTest(dataset, time, area, groupAmount = False):
-    
-    """
-    Returns a dataframe that includes the variables that were extraced from the
-    netCDF file
-    
-    Arguments:
-        dataset:
-        time:
-        area:
-        groupAmount:
-    
-    """
-    def MakeDfFromMA(variable):
-        df1 = dataset[variable][:]
-        df1 = np.ma.getdata(df1)
-        df1 = pd.DataFrame(df1)
-        return df1
-
-    variables = ['mesh2d_waterdepth', 'mesh2d_face_x', 'mesh2d_face_y', 'mesh2d_ucx', 'mesh2d_ucy', 'mesh2d_ucmag']
-
-    count = 0
-    for i in variables:
-        if count == 0:
-            if i in ['time', 'mesh2d_face_x', 'mesh2d_face_y']:
-                df = MakeDfFromMA(i)
-            else:
-                df = pd.DataFrame(np.ma.masked_values(ds[i][time], -999).data)
-            count += 1
-        else:
-            if i in ['time', 'mesh2d_face_x', 'mesh2d_face_y']:
-                df2 = MakeDfFromMA(i)
-                df = pd.concat([df, df2], axis = 1)
-            else:
-                df2 = pd.DataFrame(np.ma.masked_values(ds[i][time], -999).data)
-                df = pd.concat([df, df2], axis = 1)
-            count += 1
-    df.columns = [variables]
-    df.columns = ['depth', 'locX', 'locY', 'velX', 'velY', 'mag']
-    return df
-    
-arr = []
-#x = ds.variables['time'][:].data.shape[0]
-
-# %%
-def CreateCsv(x):
-    count = 0
-    df = pd.DataFrame()
-    df2 = pd.DataFrame()
-    for i in range(x):
-        df = CleanDataTest(ds, i, falArea)
-        df['id'] = i
-        df2 = df.append(df2)
-        print('Time step = ', i)
-        count += 1
-        if count == 100:
-            df2.to_csv(f'/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/tidyData/test{count}.csv')
-            count = 0
-            print("Made csv")
-            df = pd.DataFrame()
-            df2 = pd.DataFrame()
-        
-CreateCsv(110)
-#%% 
-import multiprocessing
-   
-if __name__ == "__main__":
-    arr1=[2,3,8,9]
-    arr2=[4, 5, 7, 10]
-    p1=multiprocessing.Process(target=CreateCsv,args=(arr1,))
-    p2=multiprocessing.Process(target=CreateCsv,args=(arr2,))
-    
-    p1.start()
-    p2.start()
-    
-    p1.join()
-    p2.join()
-    
-    print("Done")
-
