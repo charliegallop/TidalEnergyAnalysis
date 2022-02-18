@@ -109,6 +109,9 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
     m.drawcoastlines(color = 'black', linewidth=0.2)
     x2, y2 = m(x.tolist(), y.tolist())  # transform coordinates
     
+    falLat, falLong = (50.156010, -5.071080)
+    falX, falY = m(falLat, falLong)
+    
     if depth:
         plt.scatter(x2,
                     y2, 
@@ -138,6 +141,11 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
             minlength = 0.001
             )
     m.colorbar()
+    m.annotate('Falmouth', xy=(falX, falY),  xycoords='data',
+                xytext=(falX, falY), textcoords='offset points',
+                color='r',
+                arrowprops=dict(arrowstyle="fancy", color='g')
+                )
     #m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
     return fig
 

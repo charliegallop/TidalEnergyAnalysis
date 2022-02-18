@@ -73,7 +73,7 @@ def CalcVelocity(data, depthOfInterest = 2, powerLaw = 1/10, bottomRoughnessCoef
 
 # 2D Velocity and depth map
 
-def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numArrows = 3):
+def Plot2dVectorField(area, data, time = False, depth = True, flow = True, mapRes = 'i', numArrows = 3, places = False):
     plt.clf()
     fig = plt.gcf()
     fig.set_size_inches(10, 10)
@@ -90,9 +90,12 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
                 llcrnrlon = lon0, urcrnrlon = lon1,
                 llcrnrlat = lat0, urcrnrlat = lat1,
                 resolution = mapRes)
-    m.fillcontinents(color = 'darkgrey')
+    m.fillcontinents(color = 'darkgrey', lake_color='lightblue')
     m.drawcoastlines(color = 'black', linewidth=0.2)
     x2, y2 = m(x.tolist(), y.tolist())  # transform coordinates
+    
+    falLong, falLat = (50.156010, -5.071080)
+    falX, falY = m(falLat, falLong)
     
     if depth:
         plt.scatter(x2,
@@ -113,23 +116,40 @@ def Plot2dVectorField(area, data, depth = True, flow = True, mapRes = 'i', numAr
 
         m.quiver(X2[::numArrows], Y2[::numArrows], U[::numArrows], V[::numArrows], C[::numArrows],
             units='inches', 
-            cmap = 'twilight', 
+            cmap = 'mako', 
             alpha = 0.7,
             scale_units = 'xy',
-            width = 0.02,
+            width = 0.009,
             headwidth = 3,
             headlength = 3,
-            headaxislength = 3,
+            headaxislength = 4,
             minlength = 0.001
             )
-    m.colorbar()
+        
+    
+    
+    if places:
+        
+        for i in places:
+            Long, Lat = (places[i][0][0], places[i][0][1])
+            X, Y = m(Lat, Long)
+            plt.annotate(i, xy=(X, Y),  xycoords='data',
+                        xytext=(places[i][1][0],places[i][1][1]), textcoords='offset pixels',
+                        arrowprops=dict(arrowstyle="->"), color = 'black'
+                        )
+    
+    maxVel = round(C.max(), 2)
+    plt.annotate(f'Datetime: {time}', xy=(0, -0.05), xycoords='axes fraction')
+    plt.annotate(f'Max Velocity: {maxVel} m/s', xy=(0.5, -0.05), xycoords='axes fraction')
+    plt.grid(visible = True)
+    #m.colorbar()
     #m.arcgisimage(service='ESRI_Imagery_World_2D', xpixels = 1500, verbose= True)
     return fig
 
-def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2):
+def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10, depthOfInterest = 2, bottomRoughnessCoef = 0.32, depth = False, flow = True, mapRes = 'i', numArrows = 10, groupAmount = 2, places = False):
     area = area
     ds = nc.Dataset(ncFileLocation)
-
+   
     requestInput = True
     x = input("Is this the final render? (y/n)")
     
@@ -145,6 +165,9 @@ def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10
             x = input("Is this the final render? (y/n)")
             
     for i in range(timeRange[0], timeRange[1]):
+        timeSince = ds.variables['time'][:].data.tolist()[i]
+        time = pd.to_datetime("2019-10-26 00:00:00") + pd.DateOffset(seconds=timeSince)
+        
         df = CleanData(dataset = ds,
                        time = i,
                        area = area,
@@ -158,7 +181,9 @@ def CreateImageStack(area,  ncFileLocation, timeRange = [5, 15], powerLaw = 1/10
                           depth = depth,
                           flow = flow,
                           mapRes = mapRes,
-                          numArrows=numArrows).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{saveTo}/2chan{i}.png")
+                          numArrows=numArrows, 
+                          time = time,
+                          places = places).savefig(f"/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/plots/{saveTo}/2chan{i}.png", bbox_inches = 'tight', dpi = 300)
         print("Finished: ", i)
     print("Done")
 
