@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['code/cleaning.py', 'code/eda.py', 'code/plotlyTest.py', 'code/multiTest.py', 'code/test.py']
+recent_files = ['code/main.py', 'functions.py', 'code/eda.py']
 
 [main]
 version = 0.2.0

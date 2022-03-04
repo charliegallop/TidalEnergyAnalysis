@@ -5,6 +5,18 @@ from functions import CreateImageStackStreamplot
 import netCDF4 as nc
 from PIL import Image
 import pandas as pd
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import utm
+from mpl_toolkits.basemap import Basemap
+import math
+import netCDF4 as nc
+from matplotlib.offsetbox import (TextArea, DrawingArea, OffsetImage,
+                                  AnnotationBbox)
+from matplotlib.cbook import get_sample_data
+
+
 
 fn = "/home/charlie/Documents/Uni/Exeter - Data Science/MTHM604_Tackling_Sustainability_Challenges/MTHM604_week_2/data/rawData/TIGER_Model_2019-11/flow/output/TIGER_map.nc"
 
@@ -76,7 +88,7 @@ moonPhases = pd.read_csv("/home/charlie/Documents/Uni/Exeter - Data Science/MTHM
 moonPhases['datetime'] = pd.to_datetime(moonPhases['datetime']).dt.date
 # Ideal Parameters for Channel map:
     # groupAmount = 3
-    # numArrows = 10
+    # numArrows = 9
 
-CreateImageStack(clippedChannelArea, fn, timeRange = [630, 660], mapRes = "i", groupAmount=3, numArrows=9, places = places, moonImgs = moonPhasesImgs, moonPhases = moonPhases)
+CreateImageStack(clippedChannelArea, fn, timeRange = [1470, 2592], mapRes = "h", groupAmount=3, numArrows=9, places = places, moonImgs = moonPhasesImgs, moonPhases = moonPhases, depthOfInterest = 10)
 #CreateImageStackStreamplot(falArea, fn, timeRange=[100, 105], mapRes = "f", groupAmount = 4)
